@@ -38,7 +38,7 @@ var server = new WebpackDevServer(
         ca: './ca.crt',
       },
     },
-    hot: false,
+    hot: false, // turning this on will result in repeated auto refresh when doing changes
     liveReload: false,
     client: {
       webSocketTransport: 'sockjs',
