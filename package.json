@@ -1,11 +1,11 @@
 {
-  "name": "chrome-extension-boilerplate-react",
+  "name": "osrs-cloud-extension",
   "version": "5.0.4",
-  "description": "A chrome extension boilerplate built with React 18, Webpack 5, and Webpack Dev Server 4",
+  "description": "A chrome extension to display more statistics on prices.osrs.cloud",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lxieyang/chrome-extension-boilerplate-react.git"
+    "url": "https://github.com/jonsetzky/osrs-cloud-extension.git"
   },
   "scripts": {
     "build": "node utils/build.js",
@@ -13,6 +13,7 @@
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
   },
   "dependencies": {
+    "mathjs": "^12.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

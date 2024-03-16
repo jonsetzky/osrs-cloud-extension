@@ -27,8 +27,18 @@ var compiler = webpack(config);
 
 var server = new WebpackDevServer(
   {
-    https: false,
-    hot: true,
+    server: {
+      // disableHostCheck: true,
+      type: 'https',
+      options: {
+        // requestCert: true,
+        // passphrase: 'webpack-dev-server',
+        key: './cert.key',
+        cert: './cert.crt',
+        ca: './ca.crt',
+      },
+    },
+    hot: false,
     liveReload: false,
     client: {
       webSocketTransport: 'sockjs',
