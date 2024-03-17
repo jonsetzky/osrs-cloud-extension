@@ -6,6 +6,9 @@ import { addElementListener } from '../dom';
 // import Statistics from 'statistics.js';
 // import CopyPlugin from 'copy-webpack-plugin';
 
+const GOOD_ROI = 0.5;
+const BAD_ROI = 0;
+
 export default class ExtraStatistics extends Component {
   constructor(props) {
     super(props);
@@ -74,6 +77,7 @@ export default class ExtraStatistics extends Component {
     avgHigh: 0,
     avgMargin: 0,
     avgMarginRoi: 0,
+    buyEstimate: 0,
     coefLow: 0,
     coefHigh: 0,
   };
@@ -158,11 +162,18 @@ export default class ExtraStatistics extends Component {
             this.state.avgMargin
           )} (${this.state.avgMarginRoi.toFixed(2)}%)`}
           tooltip="Margin of avg. high and low after tax"
+          color={
+            this.state.avgMarginRoi > GOOD_ROI
+              ? 'green'
+              : this.state.avgMarginRoi < BAD_ROI
+              ? 'red'
+              : undefined
+          }
         />
         <Field
-          label="Coefficent"
+          label="Buy at"
           value="todo"
-          tooltip="Margin of avg. high and low after tax"
+          tooltip="An estimate for the price to buy at. Based on the last 6 hours."
         />
       </>
     );
