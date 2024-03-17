@@ -4,6 +4,18 @@ import ExtraStatistics from './ExtraStatistics';
 import React from 'react';
 
 const injectExtraStats = (id) => {
+  // make the container for all stats wired so it fits the extra column
+  waitForElm(
+    '#__next > div:nth-child(3) > div.content > div > div > div > div.align-items-center.justify-content-center.flex > div'
+  ).then(
+    /**
+     *
+     * @param {HTMLElement} statsContainer
+     */
+    (statsContainer) => {
+      statsContainer.style = 'max-width:1147px';
+    }
+  );
   return waitForElm(
     '#__next > div:nth-child(3) > div.content > div > div > div > div.align-items-center.justify-content-center.flex > div'
   ).then((statsContainer) => {

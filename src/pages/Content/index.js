@@ -1,7 +1,11 @@
 import { React } from 'react';
 import { injectExtraStats } from './ExtraStatistics';
-import ExtraStatistics from './ExtraStatistics/ExtraStatistics.jsx';
 import { printLine } from './modules/print';
+import {
+  appendItemPriceHistory,
+  updateAllItems,
+  updateAllPrices,
+} from './db.js';
 
 /**
  * @typedef {object} ItemEntry
@@ -46,29 +50,37 @@ document.addEventListener('queryIntercept', async (data) => {
   // console.log('query interception:', query);
   switch (query.operationName) {
     case 'getAllPrices':
-      await chrome.storage.local.set({ prices: query.data.price });
+      await updateAllPrices(query.data.price);
       break;
     case 'getAllItems':
-      await chrome.storage.local.set({ items: query.data.item });
+      await updateAllItems(query.data.item);
       break;
     case 'getItemPriceHistory':
-      var old = chrome.storage.local.get(query.variables.itemId.toString());
-      old.price_series = query.data.price_series;
-      var db = {};
-      db[query.variables.itemId.toString()] = old;
-      await chrome.storage.local.set(db);
+      await appendItemPriceHistory(
+        query.variables.itemId,
+        query.data.price_series
+      );
       break;
     default:
       console.warn('Unknown query operation name:', query.operationName);
   }
 });
-chrome.storage.local.onChanged.addListener((changes) => {
-  console.log(changes);
-});
+// chrome.storage.local.onChanged.addListener((changes) => {
+//   console.log(changes);
+// });
 
 injectQueryListener();
 console.log('Injecting extra stats!');
 injectExtraStats(id);
+
+(async () => {
+  console.log(
+    'using',
+    ((await chrome.storage.local.getBytesInUse()) / 1024 / 1024).toFixed(1),
+    'MB of storage'
+  );
+})();
+
 // window.addEventListener('afterload', async () =>
 //   injectExtraStats(<ExtraStatistics {...{ avgLow, avgHigh }} />)
 // );
