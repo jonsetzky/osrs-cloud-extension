@@ -9,6 +9,34 @@ import { addElementListener } from '../dom';
 const GOOD_ROI = 0.5;
 const BAD_ROI = 0;
 
+const SERIES_LENGTH = {
+  'one day': 24 * 60 * 60,
+  'one week': 7 * 24 * 60 * 60,
+  'one month': 30 * 24 * 60 * 60,
+  'six months': 6 * 30 * 24 * 60 * 60,
+  'one year': 365 * 24 * 60 * 60,
+  'five years': 5 * 365 * 24 * 60 * 60,
+  all: 7 * 24 * 60 * 60,
+};
+export const REQ_SERIES_RESOLUTION = {
+  '5m': 5 * 60,
+  '1h': 60 * 60,
+  '6h': 6 * 60 * 60,
+  '24h': 24 * 60 * 60,
+  '1d': 24 * 60 * 60,
+  '1w': 7 * 24 * 60 * 60,
+};
+
+const SERIES_RESOLUTION = {
+  'one day': REQ_SERIES_RESOLUTION['5m'],
+  'one week': 60 * 60,
+  'one month': 6 * 60 * 60,
+  'six months': 24 * 60 * 60,
+  'one year': 24 * 60 * 60,
+  'five years': 7 * 24 * 60 * 60,
+  all: 7 * 24 * 60 * 60,
+};
+
 export default class ExtraStatistics extends Component {
   constructor(props) {
     super(props);
@@ -33,24 +61,6 @@ export default class ExtraStatistics extends Component {
     addElementListener(
       '#__next > div:nth-child(3) > div.content > div > div > div > div.p-card.p-component > div.p-card-header > div > div.flex.align-items-center.justify-content-center > div > div.p-hidden-accessible.p-dropdown-hidden-select > select > option',
       (records) => {
-        const SERIES_LENGTH = {
-          'one day': 24 * 60 * 60,
-          'one week': 7 * 24 * 60 * 60,
-          'one month': 30 * 24 * 60 * 60,
-          'six months': 6 * 30 * 24 * 60 * 60,
-          'one year': 365 * 24 * 60 * 60,
-          'five years': 5 * 365 * 24 * 60 * 60,
-          all: 7 * 24 * 60 * 60,
-        };
-        const SERIES_RESOLUTION = {
-          'one day': 5 * 60,
-          'one week': 60 * 60,
-          'one month': 6 * 60 * 60,
-          'six months': 24 * 60 * 60,
-          'one year': 24 * 60 * 60,
-          'five years': 7 * 24 * 60 * 60,
-          all: 7 * 24 * 60 * 60,
-        };
         const newOption = records.find(
           (record) => record.target?.localName === 'option'
         )?.target.label;
@@ -58,6 +68,7 @@ export default class ExtraStatistics extends Component {
 
         this.currentSeriesLength = SERIES_LENGTH[newOption];
         this.currentSeriesResolution = SERIES_RESOLUTION[newOption];
+        this.update();
       }
     );
     this.update();
@@ -87,8 +98,17 @@ export default class ExtraStatistics extends Component {
     var item = await chrome.storage.local.get(idStr);
     if (Object.keys(item) < 1) return;
     item = item[idStr];
-    console.log('scale', item);
-    this.price_series = item.price_series;
+    if (item.price_series.length < 1) return;
+    if (
+      !Object.keys(item.price_series).includes(
+        this.currentSeriesResolution.toString()
+      )
+    )
+      return; // ignore update if series data is not yet in
+    // TODO rework around that
+
+    this.price_series =
+      item.price_series[this.currentSeriesResolution.toString()];
 
     const avgLow = meanTimesN(
       this.price_series,

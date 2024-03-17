@@ -1,16 +1,3 @@
-const mergePriceSeries = (a, b) => {
-  if (!a) return b;
-  if (!b) return a;
-  let merged = [];
-
-  for (let i = 0; i < a.length; i++) {
-    merged.push({
-      ...a[i],
-      ...b.find((itmInner) => itmInner.timestamp === a[i].timestamp),
-    });
-  }
-};
-
 /**
  * Updates db timestamp for a key
  */
@@ -28,15 +15,15 @@ const getItemPriceHistory = async (id) => {
 
 // TODO add data minimization when it gets old
 // -> keep high resolution data only for the last day
-const appendItemPriceHistory = async (id, new_series) => {
-  var old = chrome.storage.local.get(id.toString());
-  if (Object.keys(old).length < 1) old[id] = {};
-  old.price_series = mergePriceSeries(new_series, old.price_series);
+const setItemPriceHistory = async (id, resolution, new_series) => {
+  var old = await chrome.storage.local.get(id.toString());
+  if (Object.keys(old).length < 1) old[id] = { price_series: {} };
+  if (Object.keys(old[id]).length < 1) old[id] = { price_series: {} };
 
-  var db = {};
-  db[id.toString()] = old;
-  await chrome.storage.local.set(db);
-  await updateDbTimestamp(id);
+  old[id].price_series[resolution.toString()] = new_series;
+
+  await chrome.storage.local.set(old);
+  await updateDbTimestamp(id.toString() + resolution.toString());
   return;
 };
 
@@ -58,7 +45,7 @@ const getDbTimestamp = async (key) => {
 
 export {
   getItemPriceHistory,
-  appendItemPriceHistory,
+  setItemPriceHistory,
   updateAllItems,
   updateAllPrices,
   getDbTimestamp,

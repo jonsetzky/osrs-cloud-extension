@@ -1,11 +1,8 @@
 import { React } from 'react';
 import { injectExtraStats } from './ExtraStatistics';
 import { printLine } from './modules/print';
-import {
-  appendItemPriceHistory,
-  updateAllItems,
-  updateAllPrices,
-} from './db.js';
+import { setItemPriceHistory, updateAllItems, updateAllPrices } from './db.js';
+import { REQ_SERIES_RESOLUTION } from './ExtraStatistics/ExtraStatistics.jsx';
 
 /**
  * @typedef {object} ItemEntry
@@ -56,8 +53,9 @@ document.addEventListener('queryIntercept', async (data) => {
       await updateAllItems(query.data.item);
       break;
     case 'getItemPriceHistory':
-      await appendItemPriceHistory(
+      await setItemPriceHistory(
         query.variables.itemId,
+        REQ_SERIES_RESOLUTION[query.variables.timeSeries],
         query.data.price_series
       );
       break;
@@ -68,6 +66,7 @@ document.addEventListener('queryIntercept', async (data) => {
 // chrome.storage.local.onChanged.addListener((changes) => {
 //   console.log(changes);
 // });
+chrome.storage.local.clear();
 
 injectQueryListener();
 console.log('Injecting extra stats!');
