@@ -66,7 +66,7 @@ document.addEventListener('queryIntercept', async (data) => {
 // chrome.storage.local.onChanged.addListener((changes) => {
 //   console.log(changes);
 // });
-chrome.storage.local.clear();
+// chrome.storage.local.clear();
 
 injectQueryListener();
 console.log('Injecting extra stats!');

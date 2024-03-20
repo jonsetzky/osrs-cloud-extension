@@ -1,10 +1,15 @@
 import React, { Component } from 'react';
 import Field from './Field';
 import gpToString from '../../../../utils/gpToString';
-import { calculateTax, meanTimesN } from './StatisticsUtil';
+import {
+  calculateTax,
+  dataSlope,
+  meanTimesN,
+  standardDeviation,
+} from './StatisticsUtil';
 import { addElementListener } from '../dom';
-// import Statistics from 'statistics.js';
-// import CopyPlugin from 'copy-webpack-plugin';
+import { Column } from './Column';
+import { getAllPrices } from '../db';
 
 const GOOD_ROI = 0.5;
 const BAD_ROI = 0;
@@ -84,6 +89,8 @@ export default class ExtraStatistics extends Component {
   currentSeriesLength = 24 * 60 * 60; // 1d by default
   currentSeriesResolution = 5 * 60; // 5 min by default
   state = {
+    avgLow6h: 0,
+    avgHigh6h: 0,
     avgLow: 0,
     avgHigh: 0,
     avgMargin: 0,
@@ -91,6 +98,8 @@ export default class ExtraStatistics extends Component {
     buyEstimate: 0,
     coefLow: 0,
     coefHigh: 0,
+    slope: 0,
+    stdev: 0,
   };
 
   update = async () => {
@@ -109,26 +118,59 @@ export default class ExtraStatistics extends Component {
 
     this.price_series =
       item.price_series[this.currentSeriesResolution.toString()];
+    var series6h = [...item.price_series[REQ_SERIES_RESOLUTION['5m']]];
+    const endTimestamp = series6h.reduce(
+      (prev, curr) => Math.max(prev, curr.timestamp),
+      0
+    );
+    // console.log('6h series', series6h);
+    series6h = series6h.filter((e) => e.timestamp > endTimestamp - 6 * 60 * 60);
+    const avgLow6h = meanTimesN(series6h, 'avgLowPrice', 'lowPriceVolume');
+    const avgHigh6h = meanTimesN(series6h, 'avgHighPrice', 'highPriceVolume');
 
     const avgLow = meanTimesN(
       this.price_series,
       'avgLowPrice',
       'lowPriceVolume'
     );
-    const avgHigh = (this.avgHigh = meanTimesN(
+    const avgHigh = meanTimesN(
       this.price_series,
       'avgHighPrice',
       'highPriceVolume'
-    ));
+    );
     const avgMargin = avgHigh - avgLow - calculateTax(avgHigh);
     const avgMarginRoi = (avgMargin / avgHigh) * 100;
+    const slope = dataSlope(
+      series6h,
+      'timestamp',
+      'avgHighPrice',
+      'highPriceVolume'
+    );
+
+    const price = (await getAllPrices()).prices.find((p) => p.id === this.id);
+
+    const low = price.instasell;
+    const high = price.instabuy;
+
+    const stdevHigh = standardDeviation(
+      this.price_series,
+      'avgHighPrice',
+      'highPriceVolume'
+    );
 
     this.setState({
+      low,
+      high,
       avgLow,
       avgHigh,
       avgMargin,
       avgMarginRoi,
+      avgLow6h,
+      avgHigh6h,
+      slope,
+      stdevHigh,
     });
+
     // const firstEntryTime = price_series[0].timestamp;
     // const maxPrice = [...price_series].reduce(
     //   (prev, current) => Math.max(prev, current.avgHighPrice),
@@ -163,38 +205,60 @@ export default class ExtraStatistics extends Component {
   render() {
     return (
       <>
-        {/* <div className="col">
-          <span>LoL</span>
-        </div> */}
-        <Field
-          label="Avg. High"
-          value={gpToString(this.state.avgHigh) ?? 'Unknown'}
-          tooltip="The average low in the timeframe"
-        />
-        <Field
-          label="Avg. Low"
-          value={gpToString(this.state.avgLow) ?? 'Unknown'}
-          tooltip="The average low in the timeframe"
-        />
-        <Field
-          label="Avg. Margin"
-          value={`${gpToString(
-            this.state.avgMargin
-          )} (${this.state.avgMarginRoi.toFixed(2)}%)`}
-          tooltip="Margin of avg. high and low after tax"
-          color={
-            this.state.avgMarginRoi > GOOD_ROI
-              ? 'green'
-              : this.state.avgMarginRoi < BAD_ROI
-              ? 'red'
-              : undefined
-          }
-        />
-        <Field
-          label="Buy at"
-          value="todo"
-          tooltip="An estimate for the price to buy at. Based on the last 6 hours."
-        />
+        <Column>
+          <Field
+            label="Price"
+            value={
+              <Column>
+                <div>{gpToString(this.state.high) ?? 'Unknown'}</div>
+                <div>{gpToString(this.state.low) ?? 'Unknown'}</div>
+              </Column>
+            }
+            tooltip="The average low in the timeframe"
+          />
+        </Column>
+        <Column>
+          <Field
+            label="Avg. High"
+            value={gpToString(this.state.avgHigh) ?? 'Unknown'}
+            tooltip="The average low in the timeframe"
+          />
+          <Field
+            label="Avg. Low"
+            value={gpToString(this.state.avgLow) ?? 'Unknown'}
+            tooltip="The average low in the timeframe"
+          />
+          <Field
+            label="Avg. Margin"
+            value={`${gpToString(
+              this.state.avgMargin
+            )} (${this.state.avgMarginRoi.toFixed(2)}%)`}
+            tooltip="Margin of avg. high and low after tax"
+            color={
+              this.state.avgMarginRoi > GOOD_ROI
+                ? 'green'
+                : this.state.avgMarginRoi < BAD_ROI
+                ? 'red'
+                : undefined
+            }
+          />
+          <Field
+            label="6h avg. high"
+            value={gpToString(this.state.avgHigh6h) ?? 'Unknown'}
+            tooltip="Avg high from the last 6 hours"
+          />
+
+          <Field
+            label="6h avg. low"
+            value={gpToString(this.state.avgLow6h) ?? 'Unknown'}
+            tooltip="Avg low from the last 6 hours"
+          />
+          <Field
+            label="Standard Deviation (High)"
+            value={this.state.stdevHigh ?? 'Unknown'}
+            tooltip="Stdev"
+          />
+        </Column>
       </>
     );
   }

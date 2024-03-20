@@ -1,6 +1,6 @@
 export const addElementListener = (selector, callback) => {
   const observer = new MutationObserver(callback);
-  console.log('created observer');
+  //   console.log('created observer');
   observer.observe(document.querySelector(selector), {
     characterData: false,
     childList: true,

@@ -12,6 +12,7 @@
  */
 
 import { isNumber } from 'mathjs';
+import Statistics from 'statistics.js';
 
 const calculateTax = (price) => {
   return price < 100 ? 0 : Math.min(price * 0.01, 5_000_000);
@@ -35,6 +36,31 @@ const meanTimesN = (data, field, multiplier) => {
   );
 };
 
+const standardDeviation = (data, field, multiplier) => {
+  const mean = meanTimesN(data, field, multiplier);
+  const n = [...data].reduce((p, c) => (c[multiplier] ?? 0) + p, 0);
+  const sum = [...data].reduce((prev, curr) => {
+    return prev + (Math.pow(curr[field] - mean, 2) * curr[multiplier]) / n;
+  }, 0);
+  return Math.sqrt(sum);
+};
+
+const dataSlope = (data, x, y, yMultiplier) => {
+  var stats = new Statistics([...data], {
+    timestamp: 'metric',
+  });
+  const yMean = meanTimesN([...data], y, yMultiplier);
+  const xRange = stats.range([...data].map((e) => e[x]));
+  const d = xRange[1] - xRange[0];
+
+  // data = [...data].map((e) => {
+  //   e[y] -= yMean;
+  //   e[x] = (e[x] - xRange[0]) / d;
+  //   return e;
+  // });
+  return 0;
+};
+
 /**
  *
  * @param {PriceEntry[]} price_series
@@ -44,7 +70,7 @@ const meanTimesN = (data, field, multiplier) => {
  * }}
  */
 const averageLowAndHigh = (price_series) => {
-  console.log('going to calc price series', price_series);
+  // console.log('going to calc price series', price_series);
   const sum = [...price_series].reduce(
     /**
      * @param {[sumLow: number, numLow: number, sumHigh: number, numHigh: number]} prev
@@ -63,8 +89,14 @@ const averageLowAndHigh = (price_series) => {
     avgLow: sum[0] / sum[1],
     avgHigh: sum[2] / sum[3],
   };
-  console.log('price series are', out);
+  // console.log('price series are', out);
   return out;
 };
 
-export { averageLowAndHigh, calculateTax, meanTimesN };
+export {
+  averageLowAndHigh,
+  calculateTax,
+  meanTimesN,
+  dataSlope,
+  standardDeviation,
+};

@@ -3,9 +3,15 @@ import React, { Component } from 'react';
 class Field extends Component {
   render() {
     return (
-      <div className="grid" key={this.props.value}>
-        <div className="col">
-          <span data-pr-tooltip={this.props.tooltip}>
+      <div className="grid">
+        <div className="col" style={{ display: 'table' }}>
+          <span
+            data-pr-tooltip={this.props.tooltip}
+            style={{
+              display: 'table-cell',
+              verticalAlign: 'middle',
+            }}
+          >
             {this.props.label ?? 'N/A'}
           </span>
         </div>

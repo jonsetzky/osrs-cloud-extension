@@ -37,6 +37,10 @@ const updateAllPrices = async (prices) => {
   await updateDbTimestamp('prices');
 };
 
+const getAllPrices = async () => {
+  return await chrome.storage.local.get('prices');
+};
+
 const getDbTimestamp = async (key) => {
   var data = await chrome.storage.local.get('timestamps');
   if (Object.keys(data).length < 1) data = { timestamps: {} };
@@ -44,6 +48,7 @@ const getDbTimestamp = async (key) => {
 };
 
 export {
+  getAllPrices,
   getItemPriceHistory,
   setItemPriceHistory,
   updateAllItems,
