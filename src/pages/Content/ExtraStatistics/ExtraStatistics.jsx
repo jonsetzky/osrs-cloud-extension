@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import Field from './Field';
-import gpToString from '../../../../utils/gpToString';
+import { gpToString, gpToStringWithCommas } from '../../../../utils/gpToString';
 import {
   calculateTax,
   dataSlope,
@@ -210,8 +210,8 @@ export default class ExtraStatistics extends Component {
             label="Price"
             value={
               <Column>
-                <div>{gpToString(this.state.high) ?? 'Unknown'}</div>
-                <div>{gpToString(this.state.low) ?? 'Unknown'}</div>
+                <div>{gpToStringWithCommas(this.state.high) ?? 'Unknown'}</div>
+                <div>{gpToStringWithCommas(this.state.low) ?? 'Unknown'}</div>
               </Column>
             }
             tooltip="The average low in the timeframe"
@@ -255,8 +255,13 @@ export default class ExtraStatistics extends Component {
           />
           <Field
             label="Standard Deviation (High)"
-            value={this.state.stdevHigh ?? 'Unknown'}
-            tooltip="Stdev"
+            value={
+              `${gpToString(this.state.stdevHigh)} (${(
+                (this.state.stdevHigh / this.state.avgHigh) *
+                100
+              ).toFixed(2)}%)` ?? 'Unknown'
+            }
+            tooltip="The standard deviation for the time series. Also shown as percentage of the price. Higher is more volatility."
           />
         </Column>
       </>

@@ -1,5 +1,5 @@
 import React from 'react';
-import gpToString from '../../../../utils/gpToString';
+import gpToString, { gpToStringWithCommas } from '../../../../utils/gpToString';
 
 function numberWithCommas(x) {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -21,13 +21,13 @@ export const PriceSpan = ({ props }) => {
       <div data-pr-tooltip={props.priceTooltip}>
         {props.shorten
           ? gpToString(props.price)
-          : numberWithCommas(Math.round(props.price))}
+          : gpToStringWithCommas(Math.round(props.price))}
       </div>
       {props.secondPrice === undefined ? undefined : (
         <div data-pr-tooltip={props.secondPriceTooltip}>
           {props.shorten
             ? gpToString(props.secondPrice)
-            : numberWithCommas(Math.round(props.secondPrice))}
+            : gpToStringWithCommas(Math.round(props.secondPrice))}
         </div>
       )}
     </div>

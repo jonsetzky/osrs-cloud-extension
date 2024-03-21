@@ -7,4 +7,9 @@ const gpToString = (gp) => {
   return Math.round(gp);
 };
 
-export default gpToString;
+function gpToStringWithCommas(gp) {
+  if (!gp) return null;
+  return gp.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+export { gpToStringWithCommas, gpToString };
