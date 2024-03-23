@@ -137,32 +137,15 @@ function getInterpSeries<
   T extends { timestamp: number; [key: string]: number },
   K extends keyof T
 >(series: T[], timestamp: number, property: K): number | null {
-  // const closestPre, closestPost;
-
-  // we can assume that the series are in ascending order regarding to the timestamps
-  const secondTimestampIndex = series.findIndex(
-    (e) => e.timestamp >= timestamp
+  const first = series.find(
+    (e) => e.timestamp <= timestamp && e[property] !== null
+  );
+  const second = series.find(
+    (e) => e.timestamp >= timestamp && e[property] !== null
   );
 
-  // TODO add out of bounds handling
-  if (secondTimestampIndex === -1)
-    // there is no bigger timestamp on the series that is being requested
-    return null;
-  if (secondTimestampIndex === 0)
-    // the requested timestamp if before the beginning of time series
-    return null;
-
-  var i = secondTimestampIndex;
-  do {
-    if (++i === series.length) return null;
-  } while (series[i][property] === null);
-  const second = series[i];
-
-  i = secondTimestampIndex - 1;
-  do {
-    if (--i <= 0) return null;
-  } while (series[i][property] === null);
-  const first = series[i];
+  if (first === undefined || second === undefined) return null;
+  if (first === second) return first[property];
 
   // f = value [0.0, 1.0] equalling to the value between first and second
   const f =
