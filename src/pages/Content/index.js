@@ -1,4 +1,3 @@
-import { React } from 'react';
 import { injectExtraStats } from './ExtraStatistics';
 import { printLine } from './modules/print';
 import { setItemPriceHistory, updateAllItems, updateAllPrices } from './db.js';

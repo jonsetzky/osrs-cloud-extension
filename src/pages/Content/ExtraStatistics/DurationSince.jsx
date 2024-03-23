@@ -8,7 +8,7 @@ export const DurationSince = (args) => {
     setInterval(() => {
       setText(durationSince(args.props.timestamp));
     }, 1000);
-  }, []);
+  }, [args.props.timestamp]);
 
   return <span {...args}>{text}</span>;
 };

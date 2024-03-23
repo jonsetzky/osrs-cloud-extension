@@ -12,7 +12,6 @@
  */
 
 import { isNumber } from 'mathjs';
-import { durationSince } from '../duration';
 // import Statistics from 'statistics.js';
 
 type PriceEntry = {

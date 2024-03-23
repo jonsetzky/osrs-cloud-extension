@@ -1,10 +1,6 @@
 import React from 'react';
 import gpToString, { gpToStringWithCommas } from '../../../../utils/gpToString';
 
-function numberWithCommas(x) {
-  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
 /**
  * 
  * props: {

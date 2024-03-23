@@ -1,13 +1,7 @@
 import React, { Component } from 'react';
 import Field from './Field';
 import { gpToString, gpToStringWithCommas } from '../../../../utils/gpToString';
-import {
-  calculateTax,
-  dataSlope,
-  meanTimesN,
-  seriesIndicators,
-  standardDeviation,
-} from './StatisticsUtil';
+import { calculateTax, seriesIndicators } from './StatisticsUtil';
 import { addElementListener } from '../dom';
 import { Column } from './Column';
 import { getAllPrices } from '../db';
