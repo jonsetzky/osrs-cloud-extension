@@ -13,7 +13,11 @@
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
   },
   "dependencies": {
+    "chart.js": "^4.4.2",
+    "chartjs-adapter-moment": "^1.0.1",
+    "chartjs-plugin-annotation": "^3.0.1",
     "mathjs": "^12.4.1",
+    "moment": "^2.30.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "statistics.js": "^1.0.0"

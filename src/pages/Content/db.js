@@ -9,6 +9,15 @@ const updateDbTimestamp = async (key) => {
   await chrome.storage.local.set(oldTimestamps);
 };
 
+/**
+ *
+ * @param {*} id
+ * @returns {{
+ *  [id: number]: {
+ *    price_series: {[period: string]: import("./ExtraStatistics/StatisticsUtil").PriceEntry}
+ *  }
+ * }}
+ */
 const getItemPriceHistory = async (id) => {
   return await chrome.storage.local.get(id.toString());
 };

@@ -5,6 +5,7 @@ import {
   calculateTax,
   dataSlope,
   meanTimesN,
+  seriesIndicators,
   standardDeviation,
 } from './StatisticsUtil';
 import { addElementListener } from '../dom';
@@ -40,6 +41,32 @@ const SERIES_RESOLUTION = {
   'one year': 24 * 60 * 60,
   'five years': 7 * 24 * 60 * 60,
   all: 7 * 24 * 60 * 60,
+};
+
+const MINUTE = 60;
+const HOUR = MINUTE * 60;
+const DAY = HOUR * 24;
+const WEEK = DAY * 7;
+const MONTH = WEEK * 4;
+const YEAR = DAY * 365;
+
+const durationToString = (seconds) => {
+  const PADDING = 1.2;
+  if (seconds < MINUTE * PADDING) return 'less than a minute ago';
+  if (seconds < HOUR * PADDING)
+    return `${(seconds / MINUTE).toFixed(0)} minutes ago`;
+  if (seconds < DAY * PADDING)
+    return `${(seconds / HOUR).toFixed(0)} hours ago`;
+  if (seconds < WEEK * PADDING) return `${(seconds / DAY).toFixed(0)} days ago`;
+  if (seconds < MONTH * PADDING)
+    return `${(seconds / WEEK).toFixed(0)} weeks ago`;
+  if (seconds < YEAR * PADDING)
+    return `${(seconds / MONTH).toFixed(0)} months ago`;
+  return `${(seconds / YEAR).toFixed(0)} year(s) ago`;
+};
+
+const durationSince = (timestamp) => {
+  return durationToString(Date.now() / 1000 - timestamp);
 };
 
 export default class ExtraStatistics extends Component {
@@ -88,18 +115,18 @@ export default class ExtraStatistics extends Component {
   price_series = [];
   currentSeriesLength = 24 * 60 * 60; // 1d by default
   currentSeriesResolution = 5 * 60; // 5 min by default
+
   state = {
-    avgLow6h: 0,
-    avgHigh6h: 0,
-    avgLow: 0,
-    avgHigh: 0,
-    avgMargin: 0,
-    avgMarginRoi: 0,
-    buyEstimate: 0,
-    coefLow: 0,
-    coefHigh: 0,
-    slope: 0,
-    stdev: 0,
+    /** @type {import('./StatisticsUtil').Indicators} */
+    indicators: {},
+    /** @type {import('./StatisticsUtil').Indicators} */
+    indicators6h: {},
+    low: 0,
+    high: 0,
+    latestHighTimestamp: 0,
+    latestLowTimestamp: 0,
+    margin: 0,
+    marginRoi: 0,
   };
 
   update = async () => {
@@ -118,88 +145,35 @@ export default class ExtraStatistics extends Component {
 
     this.price_series =
       item.price_series[this.currentSeriesResolution.toString()];
+
+    const indicators = seriesIndicators(this.price_series);
+
     var series6h = [...item.price_series[REQ_SERIES_RESOLUTION['5m']]];
     const endTimestamp = series6h.reduce(
       (prev, curr) => Math.max(prev, curr.timestamp),
       0
     );
-    // console.log('6h series', series6h);
     series6h = series6h.filter((e) => e.timestamp > endTimestamp - 6 * 60 * 60);
-    const avgLow6h = meanTimesN(series6h, 'avgLowPrice', 'lowPriceVolume');
-    const avgHigh6h = meanTimesN(series6h, 'avgHighPrice', 'highPriceVolume');
-
-    const avgLow = meanTimesN(
-      this.price_series,
-      'avgLowPrice',
-      'lowPriceVolume'
-    );
-    const avgHigh = meanTimesN(
-      this.price_series,
-      'avgHighPrice',
-      'highPriceVolume'
-    );
-    const avgMargin = avgHigh - avgLow - calculateTax(avgHigh);
-    const avgMarginRoi = (avgMargin / avgHigh) * 100;
-    const slope = dataSlope(
-      series6h,
-      'timestamp',
-      'avgHighPrice',
-      'highPriceVolume'
-    );
+    const indicators6h = seriesIndicators(series6h);
 
     const price = (await getAllPrices()).prices.find((p) => p.id === this.id);
-
     const low = price.instasell;
     const high = price.instabuy;
-
-    const stdevHigh = standardDeviation(
-      this.price_series,
-      'avgHighPrice',
-      'highPriceVolume'
-    );
+    const latestHighTimestamp = price.instabuyTime;
+    const latestLowTimestamp = price.instasellTime;
+    const margin = high - low - calculateTax(high);
+    const marginRoi = (margin / low) * 100;
 
     this.setState({
       low,
       high,
-      avgLow,
-      avgHigh,
-      avgMargin,
-      avgMarginRoi,
-      avgLow6h,
-      avgHigh6h,
-      slope,
-      stdevHigh,
+      latestHighTimestamp,
+      latestLowTimestamp,
+      margin,
+      marginRoi,
+      indicators,
+      indicators6h,
     });
-
-    // const firstEntryTime = price_series[0].timestamp;
-    // const maxPrice = [...price_series].reduce(
-    //   (prev, current) => Math.max(prev, current.avgHighPrice),
-    //   0
-    // );
-    // const minPrice = [...price_series].reduce(
-    //   (prev, current) =>
-    //     current.avgHighPrice ? Math.min(prev, current.avgHighPrice) : prev,
-    //   999999999999
-    // );
-    // console.log('minPrice', minPrice);
-    // const d = maxPrice - minPrice;
-
-    // const data = [...price_series].map((e) => {
-    //   e.timestamp -= firstEntryTime;
-    //   e.timestamp /= 60 * 60 * 24;
-    //   //   e.avgHighPrice -= minPrice;
-    //   e.avgHighPrice = (e.avgHighPrice - minPrice) / d;
-    //   return e;
-    // });
-    // var stats = new Statistics(data, testVars);
-    // console.log('data', data);
-
-    // var regression = stats.linearRegression('timestamp', 'avgHighPrice');
-
-    // this.setState({
-    //   highCoef: regression.regressionFirst.beta2.toString(),
-    //   ...avgLowNHi,
-    // });
   };
 
   render() {
@@ -207,57 +181,113 @@ export default class ExtraStatistics extends Component {
       <>
         <Column>
           <Field
-            label="Price"
+            label="Latest prices"
             value={
               <Column>
-                <div>{gpToStringWithCommas(this.state.high) ?? 'Unknown'}</div>
-                <div>{gpToStringWithCommas(this.state.low) ?? 'Unknown'}</div>
+                <div>
+                  <span
+                    data-pr-tooltip={
+                      'Instabuy ' +
+                      durationSince(this.state.latestHighTimestamp)
+                    }
+                  >
+                    {gpToStringWithCommas(this.state.high) ?? 'Unknown'}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    position: 'relative',
+                    // float: 'left',
+                    textUnderlineOffset: '0.5em',
+                    textDecoration: 'underline',
+                    textDecorationThickness: '0.05em',
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      // float: 'left',
+                      left: '-0.9em',
+                    }}
+                  >
+                    &#8211;
+                  </div>
+                  <span
+                    data-pr-tooltip={
+                      'Instasell ' +
+                      durationSince(this.state.latestLowTimestamp)
+                    }
+                  >
+                    {gpToStringWithCommas(this.state.low) ?? 'Unknown'}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    position: 'relative',
+                    marginTop: '0.5em',
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      // float: 'left',
+                      left: '-0.9em',
+                    }}
+                  >
+                    =
+                  </div>
+                  <span data-pr-tooltip="Margin (ROI)">
+                    {`${gpToStringWithCommas(
+                      this.state.margin.toFixed(0)
+                    )} (${this.state.marginRoi.toFixed(2)}%)`}
+                  </span>
+                </div>
               </Column>
             }
-            tooltip="The average low in the timeframe"
           />
         </Column>
         <Column>
           <Field
             label="Avg. High"
-            value={gpToString(this.state.avgHigh) ?? 'Unknown'}
+            value={gpToString(this.state.indicators.meanHigh) ?? 'Unknown'}
             tooltip="The average low in the timeframe"
           />
           <Field
             label="Avg. Low"
-            value={gpToString(this.state.avgLow) ?? 'Unknown'}
+            value={gpToString(this.state.indicators.meanLow) ?? 'Unknown'}
             tooltip="The average low in the timeframe"
           />
           <Field
             label="Avg. Margin"
-            value={`${gpToString(
-              this.state.avgMargin
-            )} (${this.state.avgMarginRoi.toFixed(2)}%)`}
+            value={`${gpToString(this.state.indicators.meanMargin)} (${(
+              this.state.indicators.meanMarginRoi ?? 0
+            ).toFixed(2)}%)`}
             tooltip="Margin of avg. high and low after tax"
             color={
-              this.state.avgMarginRoi > GOOD_ROI
+              this.state.indicators.meanMarginRoi > GOOD_ROI
                 ? 'green'
-                : this.state.avgMarginRoi < BAD_ROI
+                : this.state.indicators.meanMarginRoi < BAD_ROI
                 ? 'red'
                 : undefined
             }
           />
           <Field
             label="6h avg. high"
-            value={gpToString(this.state.avgHigh6h) ?? 'Unknown'}
+            value={gpToString(this.state.indicators6h.meanHigh) ?? 'Unknown'}
             tooltip="Avg high from the last 6 hours"
           />
 
           <Field
             label="6h avg. low"
-            value={gpToString(this.state.avgLow6h) ?? 'Unknown'}
+            value={gpToString(this.state.indicators6h.meanLow) ?? 'Unknown'}
             tooltip="Avg low from the last 6 hours"
           />
           <Field
             label="Standard Deviation (High)"
             value={
-              `${gpToString(this.state.stdevHigh)} (${(
-                (this.state.stdevHigh / this.state.avgHigh) *
+              `${gpToString(this.state.indicators.sdHigh)} (${(
+                (this.state.indicators.sdHigh /
+                  this.state.indicators.meanHigh) *
                 100
               ).toFixed(2)}%)` ?? 'Unknown'
             }
