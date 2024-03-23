@@ -25,7 +25,7 @@ const createDataset = (priceSeries) => {
       type: 'line',
       label: 'Instabuy',
       data: priceSeries.map((row) => ({
-        x: row.timestamp,
+        x: row.timestamp * 1000, // takes input as milliseconds
         y: row.avgHighPrice,
       })),
       backgroundColor: GREEN,
@@ -38,7 +38,7 @@ const createDataset = (priceSeries) => {
       type: 'bar',
       label: 'Instabuy volume',
       data: priceSeries.map((row) => ({
-        x: row.timestamp,
+        x: row.timestamp * 1000,
         y: row.highPriceVolume,
       })),
       yAxisID: 'y1',
@@ -47,7 +47,7 @@ const createDataset = (priceSeries) => {
       type: 'line',
       label: 'Instasell',
       data: priceSeries.map((row) => ({
-        x: row.timestamp,
+        x: row.timestamp * 1000,
         y: row.avgLowPrice,
       })),
       tension: 0.4,
@@ -58,7 +58,7 @@ const createDataset = (priceSeries) => {
       type: 'bar',
       label: 'Instasell volume',
       data: priceSeries.map((row) => ({
-        x: row.timestamp,
+        x: row.timestamp * 1000,
         y: row.lowPriceVolume,
       })),
       yAxisID: 'y1',
@@ -78,12 +78,10 @@ const updateGraph = async function (canvas, id, chart = null) {
   const priceSeries = (await getItemPriceHistory(id))[id].price_series['300'];
   const indicators = seriesIndicators(priceSeries);
 
-  var update = false;
   if (chart === null) {
-    update = true;
     chart = new Chart(canvas, {});
   }
-  console.log('priceSeries', chart);
+  console.log('priceSeries', priceSeries);
   chart.data.datasets = createDataset(priceSeries);
   chart.options = {
     animation: false,
@@ -97,6 +95,9 @@ const updateGraph = async function (canvas, id, chart = null) {
     scales: {
       x: {
         type: 'time',
+        time: {
+          // unit: 'hour',
+        },
       },
       y: {
         type: 'linear',
@@ -120,7 +121,6 @@ const updateGraph = async function (canvas, id, chart = null) {
           {
             type: 'line',
             mode: 'horizontal',
-            scaleID: 'y-axis-0',
             yMin: indicators.meanHigh,
             yMax: indicators.meanHigh,
             borderColor: 'rgb(75, 192, 192)',
@@ -133,6 +133,7 @@ const updateGraph = async function (canvas, id, chart = null) {
       },
     },
   };
+  console.log('datasets', chart.data.datasets);
   chart.update('none');
   return chart;
 };
