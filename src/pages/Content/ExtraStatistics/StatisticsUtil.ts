@@ -210,7 +210,7 @@ const seriesIndicators = (series: PriceEntry[]) => {
     })(),
   }));
   const movingMean = movingAverage([...mean], 'value');
-  console.log('mmean', movingMean);
+  // console.log('mmean', movingMean);
 
   return {
     mean,

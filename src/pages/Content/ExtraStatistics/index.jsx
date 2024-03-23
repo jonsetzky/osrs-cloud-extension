@@ -114,13 +114,13 @@ const createDataset = (priceSeries) => {
 const updateGraph = async function (canvas, id, chart = null) {
   // todo: only gets 5m time series, find a way to display the current time series
   const data = await getItemPriceHistory(id);
-  if (data === undefined) return;
-  const priceSeries = (await getItemPriceHistory(id))[id].price_series['300'];
-  const indicators = seriesIndicators(priceSeries);
-
   if (chart === null) {
     chart = new Chart(canvas, {});
   }
+  if (data?.[id] === undefined) return chart;
+  const priceSeries = data[id].price_series['300'];
+  const indicators = seriesIndicators(priceSeries);
+
   // console.log('priceSeries', priceSeries);
   chart.data.datasets = createDataset(priceSeries);
   chart.options = {
