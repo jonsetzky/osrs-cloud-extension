@@ -7,12 +7,41 @@ import { getItemPriceHistory } from '../db';
 import 'chartjs-adapter-moment';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import { seriesIndicators } from './StatisticsUtil';
+import { addElementListener } from '../dom';
 
 Chart.register(annotationPlugin);
 
 const injectElement = async (selector, element) => {
   const root = createRoot(await waitForElm(selector));
   root.render(element);
+};
+
+const SERIES_LENGTH = {
+  'one day': 24 * 60 * 60,
+  'one week': 7 * 24 * 60 * 60,
+  'one month': 30 * 24 * 60 * 60,
+  'six months': 6 * 30 * 24 * 60 * 60,
+  'one year': 365 * 24 * 60 * 60,
+  'five years': 5 * 365 * 24 * 60 * 60,
+  all: 7 * 24 * 60 * 60,
+};
+export const REQ_SERIES_RESOLUTION = {
+  '5m': 5 * 60,
+  '1h': 60 * 60,
+  '6h': 6 * 60 * 60,
+  '24h': 24 * 60 * 60,
+  '1d': 24 * 60 * 60,
+  '1w': 7 * 24 * 60 * 60,
+};
+
+const SERIES_RESOLUTION = {
+  'one day': REQ_SERIES_RESOLUTION['5m'],
+  'one week': 60 * 60,
+  'one month': 6 * 60 * 60,
+  'six months': 24 * 60 * 60,
+  'one year': 24 * 60 * 60,
+  'five years': 7 * 24 * 60 * 60,
+  all: 7 * 24 * 60 * 60,
 };
 
 const GREEN = 'rgb(60, 133, 74)';
@@ -23,6 +52,8 @@ const LIGHT_BLUE = 'rgb(0, 188, 212)';
 const ORANGE = 'rgb(245, 124, 0)';
 const PURPLE = 'rgb(156, 39, 176)';
 const YELLOW = 'rgb(212, 212, 40)';
+
+var context = {};
 
 const createDataset = (priceSeries) => {
   const indicators = seriesIndicators(priceSeries);
@@ -126,33 +157,38 @@ const fetchPlayerCount = async () => {
  * @param {Chart} chart
  * @returns
  */
-const updateGraph = async function (canvas, id, chart = null) {
+const updateGraph = async function (canvas, id) {
   // todo: only gets 5m time series, find a way to display the current time series
   const data = await getItemPriceHistory(id);
-  if (chart === null) {
-    chart = new Chart(canvas, {});
+  if (context.chart === undefined) {
+    context.chart = new Chart(canvas, {});
   }
-  if (data?.[id] === undefined) return chart;
+  if (data?.[id] === undefined) return;
 
   const endTimestamp = Date.now() / 1000;
-  const startTimestamp = endTimestamp - 60 * 60 * 24;
+  const startTimestamp = endTimestamp - context.currentSeriesLength;
 
-  const priceSeries = data[id].price_series['300'];
+  console.log('context updated', context);
+
+  const priceSeries = data[id].price_series[context.currentSeriesResolution];
+  if (priceSeries === null) return;
   const indicators = seriesIndicators(priceSeries);
 
-  chart.data.datasets = createDataset(priceSeries);
+  context.chart.data.datasets = createDataset(priceSeries);
   const pcount = [...(await fetchPlayerCount())]
     .filter((e) => e[0] / 1000 <= endTimestamp && e[0] / 1000 >= startTimestamp)
     .map((row) => ({
       x: row[0],
       y: row[1],
     }));
-  const i = chart.data.datasets.findIndex((e) => e.label === 'Online players');
-  console.log('pcount', pcount);
-  if (i >= 0) chart.data.datasets[i].data = pcount;
+  const i = context.chart.data.datasets.findIndex(
+    (e) => e.label === 'Online players'
+  );
+  // console.log('pcount', pcount);
+  if (i >= 0) context.chart.data.datasets[i].data = pcount;
   else
-    chart.data.datasets.push({
-      hidden: false,
+    context.chart.data.datasets.push({
+      hidden: true,
       type: 'line',
       label: 'Online players',
       data: pcount,
@@ -163,7 +199,7 @@ const updateGraph = async function (canvas, id, chart = null) {
       yAxisID: 'y2',
     });
 
-  chart.options = {
+  context.chart.options = {
     animation: false,
     maintainAspectRatio: false,
     interaction: {
@@ -235,8 +271,7 @@ const updateGraph = async function (canvas, id, chart = null) {
     },
   };
   // console.log('datasets', chart.data.datasets);
-  chart.update('none');
-  return chart;
+  context.chart.update('none');
 };
 
 const injectExtraStats = async (id) => {
@@ -279,13 +314,29 @@ const injectExtraStats = async (id) => {
   //   </div>
   // );
 
-  const chart = await updateGraph(canvas, id);
+  context.currentSeriesLength = SERIES_LENGTH['one day'];
+  context.currentSeriesResolution = SERIES_RESOLUTION['one day'];
+  await updateGraph(canvas, id);
   // document.addEventListener('playerCountUpdated', async () =>
   //   updateGraph(canvas, id)
   // );
 
+  addElementListener(
+    '#__next > div:nth-child(3) > div.content > div > div > div > div.p-card.p-component > div.p-card-header > div > div.flex.align-items-center.justify-content-center > div > div.p-hidden-accessible.p-dropdown-hidden-select > select > option',
+    (records) => {
+      const newOption = records.find(
+        (record) => record.target?.localName === 'option'
+      )?.target.label;
+      if (!newOption) return;
+
+      context.currentSeriesLength = SERIES_LENGTH[newOption];
+      context.currentSeriesResolution = SERIES_RESOLUTION[newOption];
+      updateGraph(canvas, id);
+    }
+  );
+
   chrome.storage.local.onChanged.addListener(async () => {
-    updateGraph(canvas, id, chart);
+    updateGraph(canvas, id);
   });
 };
 
