@@ -153,6 +153,35 @@ function getInterpSeries<
 
   return interpolate(first[property], second[property], f);
 }
+function movingAverage<
+  T extends { timestamp: number; [key: string]: number | null },
+  K extends keyof T
+>(
+  series: T[],
+  property: K,
+  n: number = 30
+): { timestamp: number; mean: number }[] {
+  return [...series]
+    .map((e, i, arr) => {
+      var mean = 0;
+      var end = Math.max(0, i - n);
+      var skipped = 0;
+      for (var j = i; j > end; j--) {
+        if (series[j]?.[property] === null) {
+          skipped++;
+          continue;
+        }
+        mean += series[j]?.[property] ?? 0;
+      }
+      if (mean === 0) return null;
+      mean = mean / Math.max(1, i - end - skipped);
+      return {
+        mean,
+        timestamp: e.timestamp,
+      };
+    })
+    .filter((e) => e !== null);
+}
 
 const seriesIndicators = (series: PriceEntry[]) => {
   const lowVolume = [...series].reduce(
@@ -180,6 +209,8 @@ const seriesIndicators = (series: PriceEntry[]) => {
       return (hi + lo) / 2;
     })(),
   }));
+  const movingMean = movingAverage([...mean], 'value');
+  console.log('mmean', movingMean);
 
   return {
     mean,
@@ -191,6 +222,7 @@ const seriesIndicators = (series: PriceEntry[]) => {
     meanMarginRoi,
     sdHigh,
     sdLow,
+    movingMean,
   };
 };
 

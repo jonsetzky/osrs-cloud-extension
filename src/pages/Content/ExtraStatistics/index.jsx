@@ -52,6 +52,7 @@ const createDataset = (priceSeries) => {
       yAxisID: 'y1',
     },
     {
+      hidden: true,
       type: 'line',
       label: 'Average price',
       data: indicators.mean.map((row) => ({
@@ -62,6 +63,19 @@ const createDataset = (priceSeries) => {
       borderColor: PURPLE,
       borderWidth: 1,
       pointRadius: 1,
+      yAxisID: 'y',
+    },
+    {
+      type: 'line',
+      label: 'Moving average',
+      data: indicators.movingMean.map((row) => ({
+        x: row.timestamp * 1000,
+        y: row.mean,
+      })),
+      backgroundColor: PURPLE,
+      borderColor: PURPLE,
+      borderWidth: 1,
+      pointRadius: 0,
       yAxisID: 'y',
     },
     {
