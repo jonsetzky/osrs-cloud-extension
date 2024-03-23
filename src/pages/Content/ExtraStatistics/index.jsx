@@ -53,7 +53,13 @@ const ORANGE = 'rgb(245, 124, 0)';
 const PURPLE = 'rgb(156, 39, 176)';
 const YELLOW = 'rgb(212, 212, 40)';
 
-var context = {};
+/**
+ *
+ */
+var context = {
+  /** @type {Chart} */
+  chart: undefined,
+};
 
 const createDataset = (priceSeries) => {
   const indicators = seriesIndicators(priceSeries);
@@ -171,7 +177,7 @@ const updateGraph = async function (canvas, id) {
   console.log('context updated', context);
 
   const priceSeries = data[id].price_series[context.currentSeriesResolution];
-  if (priceSeries === null) return;
+  if (priceSeries === undefined) return;
   const indicators = seriesIndicators(priceSeries);
 
   context.chart.data.datasets = createDataset(priceSeries);
@@ -201,13 +207,13 @@ const updateGraph = async function (canvas, id) {
 
   context.chart.options = {
     animation: false,
+    responsive: true,
     maintainAspectRatio: false,
     interaction: {
       intersect: false,
       mode: 'x',
     },
     spanGaps: true,
-    responsive: true,
     scales: {
       x: {
         type: 'time',
@@ -317,6 +323,7 @@ const injectExtraStats = async (id) => {
   context.currentSeriesLength = SERIES_LENGTH['one day'];
   context.currentSeriesResolution = SERIES_RESOLUTION['one day'];
   await updateGraph(canvas, id);
+
   // document.addEventListener('playerCountUpdated', async () =>
   //   updateGraph(canvas, id)
   // );
@@ -335,8 +342,9 @@ const injectExtraStats = async (id) => {
     }
   );
 
-  chrome.storage.local.onChanged.addListener(async () => {
-    updateGraph(canvas, id);
+  chrome.storage.local.onChanged.addListener(async (c) => {
+    console.log('changed', Object.keys(c)[0]);
+    if (Object.keys(c)[0] === id.toString()) updateGraph(canvas, id);
   });
 };
 
