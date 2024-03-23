@@ -13,19 +13,37 @@ chrome.webRequest.onBeforeRequest.addListener(
 
 const fetchPlayerCount = async () => {
   const now = Math.floor(Date.now() / 1000);
-  const pcountResp = await (
+  // the html page contains recent player data
+  const recentCountResp = await (
     await fetch('https://www.misplaceditems.com/rs_tools/graph/')
   ).text();
   const re = new RegExp(
     '(?<=var\\s+db_data\\s*=\\s*)(\\{[\\s\\S]+\\})(?=\\;)',
     'g'
   );
+
+  // the "api" contans older data https://www.misplaceditems.com/rs_tools/graph/?ajax=getYear&display=avg
+  const oldCountResp = await (
+    await fetch(
+      'https://www.misplaceditems.com/rs_tools/graph/?ajax=getYear&display=avg'
+    )
+  ).json();
+
   // console.log('fetching player count');
-  const playerCount = JSON.parse(pcountResp.match(re)[0]).osrs;
+  var recentPlayerCount = JSON.parse(recentCountResp.match(re)[0]).osrs;
+  var oldPlayerCount = oldCountResp.osrs;
+
+  const oldestRecent = recentPlayerCount.reduce(
+    (p, c) => Math.min(p, c[0]),
+    999999999999999
+  );
+  oldPlayerCount = oldPlayerCount.filter((e) => e[0] < oldestRecent);
+  console.log(oldestRecent, oldPlayerCount);
+
   await chrome.storage.local.set({
     player_count: {
       cacheSet: now,
-      data: playerCount,
+      data: recentPlayerCount.concat(oldPlayerCount),
     },
   });
 };
