@@ -12,6 +12,7 @@
  */
 
 import { isNumber } from 'mathjs';
+import { durationSince } from '../duration';
 // import Statistics from 'statistics.js';
 
 type PriceEntry = {
@@ -128,7 +129,57 @@ const averageLowAndHigh = (price_series: PriceEntry[]) => {
   return out;
 };
 
+function interpolate(a: number, b: number, f: number) {
+  return a + (b - a) * Math.min(Math.max(0, f), 1);
+}
+
+function getInterpSeries<
+  T extends { timestamp: number; [key: string]: number },
+  K extends keyof T
+>(series: T[], timestamp: number, property: K): number | null {
+  // const closestPre, closestPost;
+
+  // we can assume that the series are in ascending order regarding to the timestamps
+  const secondTimestampIndex = series.findIndex(
+    (e) => e.timestamp >= timestamp
+  );
+
+  // TODO add out of bounds handling
+  if (secondTimestampIndex === -1)
+    // there is no bigger timestamp on the series that is being requested
+    return null;
+  if (secondTimestampIndex === 0)
+    // the requested timestamp if before the beginning of time series
+    return null;
+
+  var i = secondTimestampIndex;
+  do {
+    if (++i === series.length) return null;
+  } while (series[i][property] === null);
+  const second = series[i];
+
+  i = secondTimestampIndex - 1;
+  do {
+    if (--i <= 0) return null;
+  } while (series[i][property] === null);
+  const first = series[i];
+
+  // f = value [0.0, 1.0] equalling to the value between first and second
+  const f =
+    (timestamp - first.timestamp) / (second.timestamp - first.timestamp);
+
+  return interpolate(first[property], second[property], f);
+}
+
 const seriesIndicators = (series: PriceEntry[]) => {
+  const lowVolume = [...series].reduce(
+    (p, c) => p + (c.lowPriceVolume ?? 0),
+    0
+  );
+  const highVolume = [...series].reduce(
+    (p, c) => p + (c.highPriceVolume ?? 0),
+    0
+  );
   const meanHigh = meanTimesN(series, 'avgHighPrice', 'highPriceVolume');
   const meanLow = meanTimesN(series, 'avgLowPrice', 'lowPriceVolume');
   const meanMargin = meanHigh - meanLow - calculateTax(meanHigh);
@@ -136,7 +187,21 @@ const seriesIndicators = (series: PriceEntry[]) => {
   const sdHigh = standardDeviation(series, 'avgHighPrice', 'highPriceVolume');
   const sdLow = standardDeviation(series, 'avgLowPrice', 'lowPriceVolume');
 
+  const mean = [...series].map((e) => ({
+    timestamp: e.timestamp,
+    value: (() => {
+      const hi = getInterpSeries(series as any, e.timestamp, 'avgHighPrice');
+      const lo = getInterpSeries(series as any, e.timestamp, 'avgLowPrice');
+
+      if (hi === null || lo === null) return null;
+      return (hi + lo) / 2;
+    })(),
+  }));
+
   return {
+    mean,
+    lowVolume,
+    highVolume,
     meanHigh,
     meanLow,
     meanMargin,

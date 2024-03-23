@@ -16,10 +16,15 @@ const injectElement = async (selector, element) => {
 };
 
 const GREEN = 'rgb(60, 133, 74)';
-const DARK_GREEN = 'rgb(60, 133, 74, 128)';
+const DARK_GREEN = 'rgba(45, 100, 60)';
 const RED = 'rgb(233, 30, 99)';
+const DARK_RED = 'rgb(150, 10, 60)';
+const LIGHT_BLUE = 'rgb(0, 188, 212)';
+const ORANGE = 'rgb(245, 124, 0)';
+const PURPLE = 'rgb(156, 39, 176)';
 
 const createDataset = (priceSeries) => {
+  const indicators = seriesIndicators(priceSeries);
   return [
     {
       type: 'line',
@@ -29,7 +34,9 @@ const createDataset = (priceSeries) => {
         y: row.avgHighPrice,
       })),
       backgroundColor: GREEN,
-      borderColor: DARK_GREEN,
+      borderColor: GREEN,
+      borderWidth: 2,
+      pointRadius: 1.5,
       tension: 0.4,
       yAxisID: 'y',
     },
@@ -41,7 +48,21 @@ const createDataset = (priceSeries) => {
         x: row.timestamp * 1000,
         y: row.highPriceVolume,
       })),
+      backgroundColor: LIGHT_BLUE,
       yAxisID: 'y1',
+    },
+    {
+      type: 'line',
+      label: 'Average price',
+      data: indicators.mean.map((row) => ({
+        x: row.timestamp * 1000,
+        y: row.value,
+      })),
+      backgroundColor: PURPLE,
+      borderColor: PURPLE,
+      borderWidth: 1,
+      pointRadius: 1,
+      yAxisID: 'y',
     },
     {
       type: 'line',
@@ -50,6 +71,10 @@ const createDataset = (priceSeries) => {
         x: row.timestamp * 1000,
         y: row.avgLowPrice,
       })),
+      borderWidth: 2,
+      pointRadius: 1.5,
+      backgroundColor: RED,
+      borderColor: RED,
       tension: 0.4,
       yAxisID: 'y',
     },
@@ -61,6 +86,7 @@ const createDataset = (priceSeries) => {
         x: row.timestamp * 1000,
         y: row.lowPriceVolume,
       })),
+      backgroundColor: ORANGE,
       yAxisID: 'y1',
     },
   ];
@@ -81,7 +107,7 @@ const updateGraph = async function (canvas, id, chart = null) {
   if (chart === null) {
     chart = new Chart(canvas, {});
   }
-  console.log('priceSeries', priceSeries);
+  // console.log('priceSeries', priceSeries);
   chart.data.datasets = createDataset(priceSeries);
   chart.options = {
     animation: false,
@@ -123,8 +149,19 @@ const updateGraph = async function (canvas, id, chart = null) {
             mode: 'horizontal',
             yMin: indicators.meanHigh,
             yMax: indicators.meanHigh,
-            borderColor: 'rgb(75, 192, 192)',
-            borderWidth: 2,
+            borderColor: DARK_GREEN,
+            borderWidth: 0.5,
+            label: {
+              content: 'Test label',
+            },
+          },
+          {
+            type: 'line',
+            mode: 'horizontal',
+            yMin: indicators.meanLow,
+            yMax: indicators.meanLow,
+            borderColor: DARK_RED,
+            borderWidth: 0.5,
             label: {
               content: 'Test label',
             },
@@ -133,7 +170,7 @@ const updateGraph = async function (canvas, id, chart = null) {
       },
     },
   };
-  console.log('datasets', chart.data.datasets);
+  // console.log('datasets', chart.data.datasets);
   chart.update('none');
   return chart;
 };
