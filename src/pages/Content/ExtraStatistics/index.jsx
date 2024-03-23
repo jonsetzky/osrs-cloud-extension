@@ -22,9 +22,11 @@ const DARK_RED = 'rgb(150, 10, 60)';
 const LIGHT_BLUE = 'rgb(0, 188, 212)';
 const ORANGE = 'rgb(245, 124, 0)';
 const PURPLE = 'rgb(156, 39, 176)';
+const YELLOW = 'rgb(212, 212, 40)';
 
 const createDataset = (priceSeries) => {
   const indicators = seriesIndicators(priceSeries);
+
   return [
     {
       type: 'line',
@@ -106,6 +108,19 @@ const createDataset = (priceSeries) => {
   ];
 };
 
+const PLAYER_COUNT_UPDATE_INTERVAL = 60; // seconds
+const fetchPlayerCount = async () => {
+  const now = Math.floor(Date.now() / 1000);
+
+  const { cacheSet, data } = (await chrome.storage.local.get('player_count'))
+    ?.player_count ?? { cacheSet: null, data: null };
+
+  if (data !== null && cacheSet + PLAYER_COUNT_UPDATE_INTERVAL > now)
+    return data;
+
+  return data;
+};
+
 /**
  *
  * @param {Chart} chart
@@ -118,17 +133,42 @@ const updateGraph = async function (canvas, id, chart = null) {
     chart = new Chart(canvas, {});
   }
   if (data?.[id] === undefined) return chart;
+
+  const endTimestamp = Date.now() / 1000;
+  const startTimestamp = endTimestamp - 60 * 60 * 24;
+
   const priceSeries = data[id].price_series['300'];
   const indicators = seriesIndicators(priceSeries);
 
-  // console.log('priceSeries', priceSeries);
   chart.data.datasets = createDataset(priceSeries);
+  const pcount = [...(await fetchPlayerCount())]
+    .filter((e) => e[0] / 1000 <= endTimestamp && e[0] / 1000 >= startTimestamp)
+    .map((row) => ({
+      x: row[0],
+      y: row[1],
+    }));
+  const i = chart.data.datasets.findIndex((e) => e.label === 'Online players');
+  console.log('pcount', pcount);
+  if (i >= 0) chart.data.datasets[i].data = pcount;
+  else
+    chart.data.datasets.push({
+      hidden: false,
+      type: 'line',
+      label: 'Online players',
+      data: pcount,
+      backgroundColor: YELLOW,
+      borderColor: YELLOW,
+      borderWidth: 1,
+      pointRadius: 0,
+      yAxisID: 'y2',
+    });
+
   chart.options = {
     animation: false,
     maintainAspectRatio: false,
     interaction: {
       intersect: false,
-      mode: 'index',
+      mode: 'x',
     },
     spanGaps: true,
     responsive: true,
@@ -145,6 +185,16 @@ const updateGraph = async function (canvas, id, chart = null) {
         position: 'left',
       },
       y1: {
+        type: 'linear',
+        display: true,
+        position: 'right',
+
+        // grid line settings
+        grid: {
+          drawOnChartArea: false, // only want the grid lines for one axis to show up
+        },
+      },
+      y2: {
         type: 'linear',
         display: true,
         position: 'right',
@@ -228,7 +278,11 @@ const injectExtraStats = async (id) => {
   //     <canvas id="acquisitions"></canvas>
   //   </div>
   // );
+
   const chart = await updateGraph(canvas, id);
+  // document.addEventListener('playerCountUpdated', async () =>
+  //   updateGraph(canvas, id)
+  // );
 
   chrome.storage.local.onChanged.addListener(async () => {
     updateGraph(canvas, id, chart);

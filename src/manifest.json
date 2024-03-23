@@ -11,8 +11,8 @@
   "icons": {
     "128": "icon-128.png"
   },
-  "permissions": ["webRequest", "storage", "unlimitedStorage"],
-  "host_permissions": ["*://*.osrs.cloud/*"],
+  "permissions": ["webRequest", "storage", "unlimitedStorage", "offscreen"],
+  "host_permissions": ["*://*.osrs.cloud/*", "*://www.misplaceditems.com/*"],
   "content_scripts": [
     {
       "matches": ["*://*.osrs.cloud/*"],

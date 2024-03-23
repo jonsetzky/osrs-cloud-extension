@@ -68,6 +68,7 @@ document.addEventListener('queryIntercept', async (data) => {
 // });
 // chrome.storage.local.clear();
 
+document.dispatchEvent(new CustomEvent('requestPlayerCountUpdate'));
 injectQueryListener();
 console.log('Injecting extra stats!');
 injectExtraStats(id);
@@ -80,6 +81,11 @@ injectExtraStats(id);
   );
 })();
 
+// fetch('https://www.misplaceditems.com/rs_tools/graph/')
+//   .then((d) => d.json())
+//   .then((d) => {
+//     console.log('players', d);
+//   });
 // window.addEventListener('afterload', async () =>
 //   injectExtraStats(<ExtraStatistics {...{ avgLow, avgHigh }} />)
 // );
