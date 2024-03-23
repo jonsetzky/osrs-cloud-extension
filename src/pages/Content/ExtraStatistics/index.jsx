@@ -94,7 +94,7 @@ const createDataset = (priceSeries) => {
       hidden: true,
       type: 'line',
       label: 'Average price',
-      data: indicators.mean.map((row) => ({
+      data: indicators.meanTotal.map((row) => ({
         x: row.timestamp * 1000,
         y: row.value,
       })),

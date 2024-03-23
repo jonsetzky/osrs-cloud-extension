@@ -37,6 +37,22 @@ const calculateTax = (price: number) => {
  * @param {string} multiplier Multiplier field name
  * @returns Returns the avg of sum(field*multiplier)/n
  */
+const mean = (data: PriceEntry[], field: keyof PriceEntry) => {
+  return (
+    data.reduce((prev, curr, i, arr) => {
+      if (!isNumber(curr[field])) return prev;
+      return prev + (curr[field] ?? 0);
+    }, 0) / data.length
+  );
+};
+
+/**
+ * NOTE: skips null fields and multipliers
+ * @param {{[key: string]: number}[]} data
+ * @param {string} field Value field name
+ * @param {string} multiplier Multiplier field name
+ * @returns Returns the avg of sum(field*multiplier)/n
+ */
 const meanTimesN = (
   data: PriceEntry[],
   field: keyof PriceEntry,
@@ -59,18 +75,10 @@ const meanTimesN = (
  * @param {*} multiplier
  * @returns
  */
-const standardDeviation = (
-  data: PriceEntry[],
-  field: keyof PriceEntry,
-  multiplier: keyof PriceEntry
-) => {
-  const mean = meanTimesN(data, field, multiplier);
-  const n = [...data].reduce((p, c) => (c[multiplier] ?? 0) + p, 0);
+const standardDeviation = (data: PriceEntry[], field: keyof PriceEntry) => {
+  const avg = mean(data, field);
   const sum = [...data].reduce((prev, curr) => {
-    return (
-      prev +
-      (Math.pow((curr[field] ?? 0) - mean, 2) * (curr[multiplier] ?? 0)) / n
-    );
+    return prev + Math.pow((curr[field] ?? 0) - avg, 2);
   }, 0);
   return Math.sqrt(sum);
 };
@@ -195,10 +203,10 @@ const seriesIndicators = (series: PriceEntry[]) => {
   const meanLow = meanTimesN(series, 'avgLowPrice', 'lowPriceVolume');
   const meanMargin = meanHigh - meanLow - calculateTax(meanHigh);
   const meanMarginRoi = (meanMargin / meanLow) * 100;
-  const sdHigh = standardDeviation(series, 'avgHighPrice', 'highPriceVolume');
-  const sdLow = standardDeviation(series, 'avgLowPrice', 'lowPriceVolume');
+  const sdHigh = standardDeviation(series, 'avgHighPrice');
+  const sdLow = standardDeviation(series, 'avgLowPrice');
 
-  const mean = [...series].map((e) => ({
+  const meanTotal = [...series].map((e) => ({
     timestamp: e.timestamp,
     value: (() => {
       const hi = getInterpSeries(series as any, e.timestamp, 'avgHighPrice');
@@ -208,11 +216,12 @@ const seriesIndicators = (series: PriceEntry[]) => {
       return (hi + lo) / 2;
     })(),
   }));
-  const movingMean = movingAverage([...mean], 'value');
+  const movingMean = movingAverage([...meanTotal], 'value');
+  const sdMovingMean = standardDeviation(movingMean as any, 'mean' as any);
   // console.log('mmean', movingMean);
 
   return {
-    mean,
+    meanTotal,
     lowVolume,
     highVolume,
     meanHigh,
@@ -222,6 +231,7 @@ const seriesIndicators = (series: PriceEntry[]) => {
     sdHigh,
     sdLow,
     movingMean,
+    sdMovingMean,
   };
 };
 

@@ -277,11 +277,11 @@ export default class ExtraStatistics extends Component {
             tooltip="Avg low from the last 6 hours"
           />
           <Field
-            label="Standard Deviation (High)"
+            label="Standard Deviation (Moving average)"
             value={
-              `${gpToString(this.state.indicators.sdHigh)} (${(
-                (this.state.indicators.sdHigh /
-                  this.state.indicators.meanHigh) *
+              `${gpToString(this.state.indicators.sdMovingMean)} (${(
+                (this.state.indicators.sdMovingMean /
+                  this.state.indicators.meanLow) *
                 100
               ).toFixed(2)}%)` ?? 'Unknown'
             }
